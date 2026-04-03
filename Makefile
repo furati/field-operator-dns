@@ -3,7 +3,7 @@
 # ==========================================
 
 # Dynamic Tool Version Discovery (Bind9 via Alpine)
-BIND_VER := $(shell docker run --rm alpine:latest sh -c "apk update > /dev/null && apk info bind -V" | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+BIND_VER := $(shell docker run --rm --dns 8.8.8.8 alpine:latest sh -c "apk update > /dev/null && apk info bind -V" | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 
 # Project Variables
 IMAGE_NAME := field-operator-dns
@@ -61,9 +61,9 @@ help: ## Display this help information
 	@echo "Current Configuration:"
 	@echo "Bind Version: $(BIND_VER) | Registry: $(REGISTRY)"
 
-build: ## Build the DNS image locally with current Bind9 version
-	@echo "--- Starting Build Process ---"
-	docker build -t $(IMAGE_NAME) \
+build: ## Erstellt das DNS Image
+	@echo "--- Building $(IMAGE_NAME):$(BIND_VER) ---"
+	docker build --network host -t $(IMAGE_NAME) \
 		--build-arg BIND_VERSION=$(BIND_VER) \
 		--build-arg REPO_URL="https://github.com/$(GITHUB_USER)/$(IMAGE_NAME)" \
 		-f $(DOCKER_DIR)/Dockerfile $(DOCKER_DIR)

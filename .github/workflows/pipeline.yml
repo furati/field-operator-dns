@@ -34,21 +34,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GH_TOKEN }}
 
-    - name: Free Port 53 and Fix DNS
+    - name: Free Port 53 for DNS
       run: |
-        # 1. Stoppe den blockierenden Dienst
         sudo systemctl stop systemd-resolved
         sudo systemctl disable systemd-resolved
-
-        # 2. Lösche den (potenziell kaputten) Symlink
+        # Wir löschen den Symlink, damit Docker nicht versucht, 127.0.0.53 zu nutzen
         sudo rm -f /etc/resolv.conf
-
-        # 3. Erstelle eine echte Datei mit externem DNS
         echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
-        echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf
-
-        # 4. Kurzer Test, ob das Internet noch da ist
-        ping -c 1 google.com
 
     - name: Build DNS Image
       run: make build
