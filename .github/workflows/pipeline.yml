@@ -34,13 +34,21 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GH_TOKEN }}
 
-    - name: Free Port 53 and Set DNS
-      # Wir stoppen den Resolver, setzen aber einen festen Nameserver, 
-      # damit der Runner weiterhin Internetzugriff hat.
+    - name: Free Port 53 and Fix DNS
       run: |
+        # 1. Stoppe den blockierenden Dienst
         sudo systemctl stop systemd-resolved
         sudo systemctl disable systemd-resolved
+
+        # 2. Lösche den (potenziell kaputten) Symlink
+        sudo rm -f /etc/resolv.conf
+
+        # 3. Erstelle eine echte Datei mit externem DNS
         echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+        echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf
+
+        # 4. Kurzer Test, ob das Internet noch da ist
+        ping -c 1 google.com
 
     - name: Build DNS Image
       run: make build
