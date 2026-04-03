@@ -34,13 +34,22 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GH_TOKEN }}
 
-    - name: Free Port 53 for DNS
-      run: |
-        sudo systemctl stop systemd-resolved
-        sudo systemctl disable systemd-resolved
-        # Wir löschen den Symlink, damit Docker nicht versucht, 127.0.0.53 zu nutzen
-        sudo rm -f /etc/resolv.conf
-        echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+- name: Free Port 53 and Force Docker DNS
+        run: |
+          # 1. Stoppe den blockierenden Resolver
+          sudo systemctl stop systemd-resolved
+          sudo systemctl disable systemd-resolved
+
+          # 2. Docker-Konfiguration überschreiben (Zwinge Google DNS)
+          # Wir erstellen/editieren die daemon.json
+          echo '{"dns": ["8.8.8.8", "1.1.1.1"]}' | sudo tee /etc/docker/daemon.json
+
+          # 3. Docker Daemon neu starten, damit er die DNS-Settings übernimmt
+          sudo systemctl restart docker
+
+          # 4. Host-DNS zur Sicherheit auch fixen
+          sudo rm -f /etc/resolv.conf
+          echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
 
     - name: Build DNS Image
       run: make build
