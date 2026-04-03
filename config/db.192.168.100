@@ -1,0 +1,15 @@
+$TTL    604800
+@       IN      SOA     ns1.nutanix.local. admin.nutanix.local. (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns1.nutanix.local.
+
+11      IN      PTR     node01.nutanix.local.
+12      IN      PTR     node01-cvm.nutanix.local.
+13      IN      PTR     node02.nutanix.local.
+14      IN      PTR     node02-cvm.nutanix.local.
+20      IN      PTR     cluster-vip.nutanix.local.

@@ -1,0 +1,53 @@
+---
+- name: Build and Push Field DNS
+  hosts: localhost
+  connection: local
+  vars:
+    image_name: "nutanix-field-dns"
+    github_user: "furati" # Deinen GitHub User hier anpassen
+    author_email: "ralf@buhlrich.com"
+
+  tasks:
+  - name: "Dynamic Version Discovery: Bind9 (via Alpine)"
+    # Wir holen uns die aktuelle Version aus den Alpine Repositories
+    shell: 'docker run --rm alpine:latest sh -c "apk update > /dev/null && apk info bind -V" | head -n 1 | grep -oE "[0-9]+\.[0-9]+\.[0-9]+"'
+    register: bind_ver_cmd
+    changed_when: false
+    failed_when: bind_ver_cmd.stdout == ""
+
+  - name: "Set Version Fact"
+    set_fact:
+      bind_ver: "{{ bind_ver_cmd.stdout }}"
+
+  - name: "Build Docker Image with OCI Labels"
+    community.docker.docker_image:
+      name: "{{ image_name }}"
+      build:
+        # Pfad zum Build-Kontext ist das 'docker' Unterverzeichnis
+        path: "./docker"
+        dockerfile: "Dockerfile"
+        args:
+          BIND_VERSION: "{{ bind_ver }}"
+          AUTHOR_EMAIL: "{{ author_email }}"
+          REPO_URL: "https://github.com/{{ github_user }}/{{ image_name }}"
+      source: build
+      force_source: yes
+    register: build_result
+
+  - name: "Authenticate with GHCR"
+    community.docker.docker_login:
+      registry_url: ghcr.io
+      username: "{{ github_user }}"
+      password: "{{ gh_token }}"
+      reauthorize: yes
+
+  - name: "Tag and Push to GitHub Container Registry (GHCR)"
+    community.docker.docker_image:
+      name: "{{ image_name }}:latest"
+      repository: "ghcr.io/{{ github_user }}/{{ image_name }}"
+      tag: "{{ item }}"
+      push: yes
+      source: local
+    loop:
+    - "latest"
+    - "{{ bind_ver }}"

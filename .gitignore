@@ -1,0 +1,41 @@
+# === Docker & Runtime ===
+# Verhindert, dass lokale Container-IDs oder Zustände eingecheckt werden
+.docker/
+*.tar
+*.tar.gz
+
+# === Nutanix DNS Spezifisch ===
+# Falls du temporäre Logfiles im Projektverzeichnis erzeugst
+config/*.log
+config/*.jnl
+config/*.signed
+
+# === macOS Spezifisch (Wichtig für dein MacBook) ===
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# === Ansible & Secrets ===
+# Verhindert das Einchecken von sensitiven Token-Dateien
+.github_token
+*.retry
+/ansible.log
+.venv/
+__pycache__/
+
+# === Editoren & IDEs ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === Backup & Temp ===
+*.bak
+*~
+tmp/
+
+# personal
+alias.rc
