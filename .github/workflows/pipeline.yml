@@ -24,6 +24,8 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
+    # --- PHASE 1: Vorbereitung (DNS noch aktiv) ---
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -34,25 +36,20 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GH_TOKEN }}
 
-    - name: Free Port 53 and Force Docker DNS
+    - name: Build DNS Image
+      # Hier funktioniert das Internet noch normal, 
+      # Docker kann alpine:latest problemlos auflösen.
+      run: make build
+
+    # --- PHASE 2: Lokaler DNS Test (Port 53 freigeben) ---
+
+    - name: Free Port 53 for Testing
+      # Wir stoppen den Resolver erst JETZT, kurz vor 'make run'
       run: |
-        # 1. Stoppe den blockierenden Resolver
         sudo systemctl stop systemd-resolved
         sudo systemctl disable systemd-resolved
-
-        # 2. Docker-Konfiguration überschreiben (Zwinge Google DNS)
-        # Wir erstellen/editieren die daemon.json
-        echo '{"dns": ["8.8.8.8", "1.1.1.1"]}' | sudo tee /etc/docker/daemon.json
-
-        # 3. Docker Daemon neu starten, damit er die DNS-Settings übernimmt
-        sudo systemctl restart docker
-
-        # 4. Host-DNS zur Sicherheit auch fixen
         sudo rm -f /etc/resolv.conf
         echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
-
-    - name: Build DNS Image
-      run: make build
 
     - name: Run DNS Service and Health Check
       run: |
@@ -61,6 +58,16 @@ jobs:
         make test
         make stop
 
+    # --- PHASE 3: Deployment via Toolbox ---
+
+    - name: Restore DNS for Push
+      # Wir stellen DNS sicher, damit die Toolbox (Ansible) 
+      # die Registry für den Push erreichen kann.
+      if: always()
+      run: |
+        echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+        echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf
+
     - name: Build and Push to GHCR
-      # Wichtig: Hier wird die iac-toolbox (Ansible) getriggert
+      # Nutzt die iac-toolbox (Ansible)
       run: make push
