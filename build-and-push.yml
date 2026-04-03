@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   vars:
-    image_name: "nutanix-field-dns"
+    image_name: "field-operator-dns"
     github_user: "furati" # Deinen GitHub User hier anpassen
     author_email: "ralf@buhlrich.com"
 
